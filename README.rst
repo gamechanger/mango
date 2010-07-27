@@ -15,6 +15,9 @@ To use mango with your Django project, just add these lines to your settings.py 
    MONGODB_PORT = None         # enter your MongoDB port here (None for default port)
    MONGODB_NAME = 'mydb'       # enter your MongoDB database name here
 
+To use Mango with a Paired connection, set MONGODB_HOST to something like:
+MONGODB_HOST = (('host1', 'port1'), ('host2', 'port2'))
+
 Also, make sure 'MIDDLEWARE_CLASSES' contains the session and authentication middleware classes::
 
    MIDDLEWARE_CLASSES = (

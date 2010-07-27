@@ -3,7 +3,11 @@ from pymongo import Connection
 import pymongo.errors
 
 OperationFailure = pymongo.errors.OperationFailure
-_connection = Connection(settings.MONGODB_HOST, settings.MONGODB_PORT)
+host = settings.MONGODB_HOST
+if isinstance(host, tuple) and len(host) is 2 and isinstance(host[0], tuple):
+    _connection = Connection.paired(left=host[0], right=host[1]))
+else:
+    _connection = Connection(settings.MONGODB_HOST, settings.MONGODB_PORT)
 database = _connection[settings.MONGODB_NAME] if _connection else None
 
 class Model(object):
@@ -27,7 +31,7 @@ class Model(object):
 
     def save(self):
         self._fields['_id'] = self.collection.save(self._fields, safe=True)
-        
+
     def delete(self):
         self.collection.remove({'_id': self._fields.get('_id', None)})
         self.id = None
