@@ -8,8 +8,9 @@ class SessionStore(SessionBase):
     Implements MongoDB session store.
     """
     def load(self):
-        s = db.sessions.find_one( { 
-                'session_key': self.session_key, 
+        db.sessions.ensure_index([('session_key', 1), ('expire_date', 1)])
+        s = db.sessions.find_one( {
+                'session_key': self.session_key,
                 'expire_date': {'$gt': datetime.datetime.now()}})
         if s:
             return self.decode(force_unicode(s['session_data']))
