@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "mango",
-    version = "0.1",
+    version = "0.1.1",
     description = "Django session and auth backends using MongoDB",
     author = "Vinay Pulim",
     license = "BSD License",
