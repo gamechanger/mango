@@ -106,14 +106,14 @@ class User(Model):
     def create_user(cls, username, email, password=None):
         "Creates and saves a User with the given username, e-mail and password."
         now = datetime.datetime.now()
-        user = cls({'username': username, 
-                    'first_name': '', 
-                    'last_name': '', 
-                    'email': email.strip().lower(), 
-                    'password': 'placeholder', 
-                    'is_staff': False, 
-                    'is_active': True, 
-                    'is_superuser': False, 
+        user = cls({'username': username,
+                    'first_name': '',
+                    'last_name': '',
+                    'email': email.strip().lower(),
+                    'password': 'placeholder',
+                    'is_staff': False,
+                    'is_active': True,
+                    'is_superuser': False,
                     'last_login': now,
                     'date_joined': now,
                     })
@@ -138,4 +138,4 @@ class Backend(object):
     def get_user(self, user_id):
         return User.get({'_id': user_id})
 
-    
+

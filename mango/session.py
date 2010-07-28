@@ -8,7 +8,7 @@ class SessionStore(SessionBase):
     Implements MongoDB session store.
     """
     def load(self):
-        db.sessions.ensure_index([('session_key', 1), ('expire_date', 1)])
+        db.sessions.ensure_index([('session_key', 1), ('expire_date', 1)]) # otherwise this gets slow
         s = db.sessions.find_one( {
                 'session_key': self.session_key,
                 'expire_date': {'$gt': datetime.datetime.now()}})
@@ -51,6 +51,7 @@ class SessionStore(SessionBase):
             }
         try:
             if must_create:
+                db.sessions.ensure_index('session_key', unique=True, ttl=3600) # uniqueness on session_key
                 db.sessions.save(obj, safe=True)
             else:
                 db.sessions.update({'session_key': self.session_key},
