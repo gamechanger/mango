@@ -5,7 +5,7 @@ import pymongo.errors
 OperationFailure = pymongo.errors.OperationFailure
 host = settings.MONGODB_HOST
 if isinstance(host, tuple) and len(host) is 2 and isinstance(host[0], tuple):
-    _connection = Connection.paired(left=host[0], right=host[1]))
+    _connection = Connection.paired(left=host[0], right=host[1])
 else:
     _connection = Connection(settings.MONGODB_HOST, settings.MONGODB_PORT)
 database = _connection[settings.MONGODB_NAME] if _connection else None
