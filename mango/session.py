@@ -1,24 +1,30 @@
 import datetime
 from django.contrib.sessions.backends.base import SessionBase, CreateError
 from django.utils.encoding import force_unicode
-from mango import database as db, OperationFailure
+from mango import database as db, old_database as olddb, OperationFailure
 
 class SessionStore(SessionBase):
     """
     Implements MongoDB session store.
     """
     def load(self):
-        db.sessions.ensure_index([('session_key', 1), ('expire_date', 1)]) # otherwise this gets slow
-        s = db.sessions.find_one( {
-                'session_key': self.session_key,
-                'expire_date': {'$gt': datetime.datetime.now()}})
+        now = datetime.datetime.now()
+        s = db.session.find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
+        if not s:
+            olddb.sessions.ensure_index([('session_key', 1), ('expire_date', 1)])
+            s = olddb.sessions.find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
+            if s:
+                db.session.save(s)
+
         if s:
             return self.decode(force_unicode(s['session_data']))
         else:
             return {}
 
     def exists(self, session_key):
-        if db.sessions.find_one( {'session_key': session_key} ):
+        if db.session.find_one({'session_key': session_key}):
+            return True
+        elif olddb.sessions.find_one({'session_key': session_key}):
             return True
         else:
             return False
@@ -51,11 +57,10 @@ class SessionStore(SessionBase):
             }
         try:
             if must_create:
-                db.sessions.ensure_index('session_key', unique=True, ttl=3600) # uniqueness on session_key
-                db.sessions.save(obj, safe=True)
+                db.session.ensure_index('session_key', unique=True, ttl=3600) # uniqueness on session_key
+                db.session.save(obj, safe=True)
             else:
-                db.sessions.update({'session_key': self.session_key},
-                                   obj, upsert=True)
+                db.session.update({'session_key': self.session_key}, obj, upsert=True)
         except OperationFailure, e:
             if must_create:
                 raise CreateError
@@ -66,4 +71,4 @@ class SessionStore(SessionBase):
             if self._session_key is None:
                 return
             session_key = self._session_key
-        db.sessions.remove({'session_key': session_key})
+        db.session.remove({'session_key': session_key})
