@@ -16,9 +16,10 @@ class SessionStore(SessionBase):
             if s:
                 db.session.save(s)
 
-        if s:
+        try:
             return self.decode(force_unicode(s['session_data']))
-        else:
+        except:
+            self.create()
             return {}
 
     def exists(self, session_key):
