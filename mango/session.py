@@ -61,7 +61,7 @@ class SessionStore(SessionBase):
                 db.session.ensure_index('session_key', unique=True, ttl=3600) # uniqueness on session_key
                 db.session.save(obj, safe=True)
             else:
-                db.session.update({'session_key': self.session_key}, obj, upsert=True)
+                db.session.update({'session_key': self.session_key}, obj, upsert=True, multi=True)
         except OperationFailure, e:
             if must_create:
                 raise CreateError
