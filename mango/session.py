@@ -1,7 +1,7 @@
 import datetime
 from django.contrib.sessions.backends.base import SessionBase, CreateError
 from django.utils.encoding import force_unicode
-from mango import database as db, old_database as olddb, OperationFailure
+from mango import database as db, old_database as olddb, OperationFailure, collection, old_collection
 
 class SessionStore(SessionBase):
     """
@@ -9,12 +9,11 @@ class SessionStore(SessionBase):
     """
     def load(self):
         now = datetime.datetime.now()
-        s = db.session.find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
+        s = db[collection].find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
         if not s:
-            olddb.sessions.ensure_index([('session_key', 1), ('expire_date', 1)])
-            s = olddb.sessions.find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
+            s = olddb[old_collection].find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
             if s:
-                db.session.save(s)
+                db[collection].save(s)
 
         try:
             return self.decode(force_unicode(s['session_data']))
@@ -23,9 +22,9 @@ class SessionStore(SessionBase):
             return {}
 
     def exists(self, session_key):
-        if db.session.find_one({'session_key': session_key}):
+        if db[collection].find_one({'session_key': session_key}):
             return True
-        elif olddb.sessions.find_one({'session_key': session_key}):
+        elif olddb[old_collection].find_one({'session_key': session_key}):
             return True
         else:
             return False
@@ -51,17 +50,16 @@ class SessionStore(SessionBase):
         create a *new* entry (as opposed to possibly updating an existing
         entry).
         """
-        obj = {
-            'session_key': self.session_key,
-            'session_data': self.encode(self._get_session(no_load=must_create)),
-            'expire_date': self.get_expiry_date()
-            }
+        obj = {'session_key': self.session_key,
+               'session_data': self.encode(self._get_session(no_load=must_create)),
+               'expire_date': self.get_expiry_date()}
+
         try:
             if must_create:
-                db.session.ensure_index('session_key', unique=True, ttl=3600) # uniqueness on session_key
-                db.session.save(obj, safe=True)
+                db[collection].ensure_index('session_key', unique=True, ttl=3600)
+                db[collection].save(obj, safe=True)
             else:
-                db.session.update({'session_key': self.session_key}, obj, upsert=True, multi=True)
+                db[collection].update({'session_key': self.session_key}, obj, upsert=True)
         except OperationFailure, e:
             if must_create:
                 raise CreateError
