@@ -2,6 +2,8 @@ import datetime
 from django.contrib.sessions.backends.base import SessionBase, CreateError
 from django.utils.encoding import force_unicode
 from mango import database as db, OperationFailure, collection
+import os
+import uuid
 
 class SessionStore(SessionBase):
     """
@@ -49,6 +51,7 @@ class SessionStore(SessionBase):
             if must_create:
                 db[collection].ensure_index('session_key', unique=True, ttl=3600)
                 db[collection].save(obj, safe=True)
+                assert self.exists(self.session_key)
             else:
                 db[collection].update({'session_key': self.session_key}, obj, upsert=True)
         except OperationFailure, e:
@@ -62,3 +65,13 @@ class SessionStore(SessionBase):
                 return
             session_key = self._session_key
         db.session.remove({'session_key': session_key})
+
+    def _get_new_session_key(self):
+        while 1:
+            import os
+            guid = str(uuid.UUID(bytes=os.urandom(16), version=4)).replace('-','')
+            session_key = "%s%s"% (datetime.datetime.now().strftime("%y%m%d"), guid[-26:])
+            if not self.exists(session_key):
+                break
+        return session_key
+
