@@ -1,7 +1,7 @@
 import datetime
 from django.contrib.sessions.backends.base import SessionBase, CreateError
 from django.utils.encoding import force_unicode
-from mango import database as db, old_database as olddb, OperationFailure, collection, old_collection
+from mango import database as db, OperationFailure, collection
 
 class SessionStore(SessionBase):
     """
@@ -10,10 +10,6 @@ class SessionStore(SessionBase):
     def load(self):
         now = datetime.datetime.now()
         s = db[collection].find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
-        if not s:
-            s = olddb[old_collection].find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
-            if s:
-                db[collection].save(s)
 
         try:
             return self.decode(force_unicode(s['session_data']))
@@ -22,12 +18,7 @@ class SessionStore(SessionBase):
             return {}
 
     def exists(self, session_key):
-        if db[collection].find_one({'session_key': session_key}):
-            return True
-        elif olddb[old_collection].find_one({'session_key': session_key}):
-            return True
-        else:
-            return False
+        return True if db[collection].find_one({'session_key': session_key}) else False
 
     def create(self):
         while True:

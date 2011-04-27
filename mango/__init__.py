@@ -5,9 +5,7 @@ import pymongo.errors
 OperationFailure = pymongo.errors.OperationFailure
 _connection = Connection(getattr(settings, 'MANGO_DB_URI', 'localhost'))
 database = _connection[getattr(settings, 'MANGO_SESSION_DB', 'django')]
-old_database = _connection[getattr(settings, 'MANGO_SESSION_DB_OLD', 'django_sessions')]
 collection = getattr(settings, 'MANGO_SESSION_COLL', 'session2')
-old_collection = getattr(settings, 'MANGO_SESSION_COLL_OLD', 'session')
 
 class Model(object):
 
