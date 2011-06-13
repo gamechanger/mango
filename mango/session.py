@@ -10,17 +10,24 @@ class SessionStore(SessionBase):
     Implements MongoDB session store.
     """
     def load(self):
-        now = datetime.datetime.now()
-        s = db[collection].find_one({'session_key': self.session_key, 'expire_date': {'$gt': now}})
+        s = db[collection].find_one({'_id': self.session_key})
+
+        if not s:
+            return {}
+
+        if s and s['expire_date'] < datetime.datetime.now():
+            self.delete()
+            return {}
 
         try:
+            # in case of bad data, bail out (this is possible)
             return self.decode(force_unicode(s['session_data']))
-        except:
-            self.create()
+        except Exception as e:
+            self.delete()
             return {}
 
     def exists(self, session_key):
-        return True if db[collection].find_one({'session_key': session_key}) else False
+        return True if db[collection].find_one({'_id': session_key}) else False
 
     def create(self):
         while True:
@@ -43,30 +50,33 @@ class SessionStore(SessionBase):
         create a *new* entry (as opposed to possibly updating an existing
         entry).
         """
-        obj = {'session_key': self.session_key,
+        obj = {'_id': self.session_key,
                'session_data': self.encode(self._get_session(no_load=must_create)),
                'expire_date': self.get_expiry_date()}
 
         try:
+            # always pass safe=True, so that we don't drop sessions
             if must_create:
-                db[collection].ensure_index('session_key', unique=True, ttl=3600)
-                db[collection].save(obj, safe=True)
-                assert self.exists(self.session_key)
+                db[collection].insert(obj, safe=True)
             else:
-                db[collection].update({'session_key': self.session_key}, obj, upsert=True)
+                db[collection].update({'_id': self.session_key},
+                                      obj, upsert=True, safe=True)
         except OperationFailure, e:
             if must_create:
                 raise CreateError
-            raise
+            raise e
 
     def delete(self, session_key=None):
         if session_key is None:
             if self._session_key is None:
                 return
             session_key = self._session_key
-        db.session.remove({'session_key': session_key})
+        db[collection].remove({'_id': session_key})
 
     def _get_new_session_key(self):
+        """
+        This method uses a sharding-friendly session key
+        """
         while 1:
             import os
             guid = str(uuid.UUID(bytes=os.urandom(16), version=4)).replace('-','')
