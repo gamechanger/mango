@@ -26,6 +26,12 @@ class SessionStore(SessionBase):
             self.delete()
             return {}
 
+    def session_data(self):
+        s = db[collection].find_one({'_id': self.session_key})
+        if s:
+            return s['session_data']
+
+
     def exists(self, session_key):
         return True if db[collection].find_one({'_id': session_key}) else False
 
