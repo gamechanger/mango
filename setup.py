@@ -22,6 +22,6 @@ setup(
     ],
     packages = find_packages(),
     install_requires = [
-        'pymongo>=1.3',
+        'pymongo==1.11'
     ]
 )
